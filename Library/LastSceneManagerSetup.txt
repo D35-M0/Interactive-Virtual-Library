@@ -1,0 +1,7 @@
+sceneSetups:
+- path: Assets/Scenes/PageCurl.unity
+  isLoaded: 1
+  isActive: 1
+- path: Assets/Scenes/SwipeControl.unity
+  isLoaded: 0
+  isActive: 0
