@@ -1,4 +1,0 @@
-sceneSetups:
-- path: CameronStuff/Leap Motion Test/Assets/Scenes/SwipeControl.unity
-  isLoaded: 1
-  isActive: 1
