@@ -1,0 +1,441 @@
+using System;
+using MySql.Data.MySqlClient;
+
+
+namespace Runner
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //TESTING AREA
+
+            Console.ReadKey();
+            
+        }
+    } // END OF PROGRAM CLASS
+
+    class Book
+    {
+        String title, authors,genres;
+        int book_id;
+        int char_count;
+        /* 
+            Parameterized Constructor for the class Book
+            Inputs: int book_id,String title,String authors,int char_count     
+            Outputs: Book object created
+         */
+        public Book(int book_id, String title, String authors, String genres, int char_count)
+        {
+            this.book_id = book_id;
+            this.title = title;
+            this.authors = authors;
+            this.genres = genres;
+            this.char_count = char_count;            
+        }
+        /*
+            toString method for the class Book
+            Inputs: NONE
+            Outputs: String containing instance fields of a Book object.
+         */
+        public String toString() 
+        { 
+            return(this.book_id+" "+this.title+" "+this.char_count+"\n"+this.authors+"\n"+this.genres+"\n");
+        }
+    
+    } // END OF BOOK CLASS
+
+
+    class QuerySystem
+    {
+        /*
+            The Query System is very simple. It uses default parameters.
+         *  The Search() method is all you need to use. Simply input the parameters you wish to search by.
+         *  Make sure to put NULL for parameters you are not using, you only need to do this if you are skipping a parameters.
+         *  EXAMPLES:         *  
+         *  Search(null,"Lord of The Flies")
+         *  Search(null,null,"Horror")
+         *  Search("J.K. Rowling",null,"Fantasy")
+         *  
+         * I hope that makes sense!
+         */
+        static string actualConnectionString = "server=127.0.0.1;uid=root;pwd=ginnyq0811;database=seniordesign;";
+
+        /*
+         *  Search Method
+         */
+        public Book[] Search(String authorName = null, String titleName = null, String genres = null, int min = 0, int max = 60000)
+       {
+           if (String.IsNullOrEmpty(titleName) && !String.IsNullOrEmpty(authorName) && String.IsNullOrEmpty(genres) ) // author 
+           {
+               Console.WriteLine("author max min");
+               return authorSearch("%"+authorName+"%", min, max);
+           }
+           else if (!String.IsNullOrEmpty(titleName) && String.IsNullOrEmpty(authorName) && String.IsNullOrEmpty(genres) ) // title 
+           {
+               Console.WriteLine("title max min");
+               return TitleSearch("%"+titleName+"%", min, max);
+           }
+           else if (String.IsNullOrEmpty(titleName) && String.IsNullOrEmpty(authorName) && !String.IsNullOrEmpty(genres) ) // genre 
+           {
+               Console.WriteLine("Genres");
+               return GenreSearch("%" + genres + "%", min, max);
+           }
+           else if (!String.IsNullOrEmpty(titleName) && !String.IsNullOrEmpty(authorName) && String.IsNullOrEmpty(genres)) // author  title
+           {
+               Console.WriteLine("author and title");
+               return AuthorTitleSearch("%" + authorName + "%", "%" + titleName + "%", min, max);
+           }
+           else if (!String.IsNullOrEmpty(titleName) && !String.IsNullOrEmpty(authorName) && !String.IsNullOrEmpty(genres)) // author title genre
+           {
+               Console.WriteLine("author title genre");
+               return AuthorGenreTitleSearch("%" + authorName + "%", "%" + genres + "%", "%" + titleName + "%", min, max);
+           }
+           else if (String.IsNullOrEmpty(titleName) && !String.IsNullOrEmpty(authorName) && !String.IsNullOrEmpty(genres)) // author  genre
+           {
+               Console.WriteLine("author  genre");
+               return AuthorGenreSearch("%" + authorName + "%", "%" + genres + "%", min, max);
+           }
+           else if (!String.IsNullOrEmpty(titleName) && String.IsNullOrEmpty(authorName) && !String.IsNullOrEmpty(genres)) // title  genre
+           {
+               Console.WriteLine("title genre");
+               return GenreTitleSearch("%" + genres + "%", "%" + titleName + "%", min, max);
+           }
+           
+
+           Console.WriteLine("NADA");
+               return max_minSearch(min, max);
+           
+            
+       }
+
+/*********************************************************************************************************************************************/
+
+        /*
+        *  Author Search
+        */
+        public Book[] authorSearch(String authorName, int min, int max)
+        {
+            if (min > max)
+            {
+                Console.WriteLine("Min greater than Max");
+                return null;
+            }
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            String connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 50 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.AuthorSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+                    command.Parameters.AddWithValue("@authorName", authorName);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (String)reader[1], (String)reader[2], (String)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        } // END OF AUTHOR SEARCH
+
+        /*
+         * Title Search
+        */
+        public Book[] TitleSearch(String titleName, int min, int max)
+        {
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            String connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 100 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.TitleSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@titleName", titleName);
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (String)reader[1], (String)reader[2], (String)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        } // END OF TITLE SEARCH METHOD
+
+        /*
+         *  Max/Min Search
+         */
+        public Book[] max_minSearch(int min ,int max)
+        {
+            if(min>max)
+            {
+                Console.WriteLine("Min greater than Max");
+                return null;
+            }
+
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            String connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 100 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.Max_MinSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (String)reader[1], (String)reader[2], (String)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }                
+            }
+
+            return result;
+        } // END OF Max MIN METHOD
+
+        /*
+            Genre Search
+         */
+        public Book[] GenreSearch(string genres,int min, int max)
+        {
+            if (min > max)
+            {
+                Console.WriteLine("Min greater than Max");
+                return null;
+            }
+
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            string connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 100 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.GenreSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+                    command.Parameters.AddWithValue("@genres", genres);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (string)reader[1], (string)reader[2], (string)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        } // END OF GENRES METHOD
+
+        /*
+          *  Author & Title Search
+          */
+        public Book[] AuthorTitleSearch(string authorName,string titleName, int min, int max)
+        {
+            if (min > max)
+            {
+                Console.WriteLine("Min greater than Max");
+                return null;
+            }
+
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            string connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 100 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.Author_TitleSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+                    command.Parameters.AddWithValue("@authorName", authorName);
+                    command.Parameters.AddWithValue("@titleName", titleName);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (string)reader[1], (string)reader[2], (string)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }// END OF AUTHOR TITLE SEARCH METHOD
+
+        /*
+          *  Author & Genre Search
+          */
+        public Book[] AuthorGenreSearch(string authorName, string genres, int min, int max)
+        {
+            if (min > max)
+            {
+                Console.WriteLine("Min greater than Max");
+                return null;
+            }
+
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            string connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 100 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.Author_GenreSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+                    command.Parameters.AddWithValue("@authorName", authorName);
+                    command.Parameters.AddWithValue("@genres", genres);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (string)reader[1], (string)reader[2], (string)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }// END OF AUTHOR TITLE SEARCH METHOD
+
+        /*
+         *  Author Genre & Title Search
+         */
+        public Book[] AuthorGenreTitleSearch(string authorName, string genres,string titleName, int min, int max)
+        {
+            if (min > max)
+            {
+                Console.WriteLine("Min greater than Max");
+                return null;
+            }
+
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            string connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 100 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.Author_Genre_TitleSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+                    command.Parameters.AddWithValue("@genres", genres);
+                    command.Parameters.AddWithValue("@authorName", authorName);
+                    command.Parameters.AddWithValue("@titleName", titleName);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (string)reader[1], (string)reader[2], (string)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }// END OF AUTHOR GENRE TITLE SEARCH METHOD
+
+        /*
+          *  Genre & Title Search
+          */
+        public Book[] GenreTitleSearch(string genres, string titleName, int min, int max)
+        {
+            if (min > max)
+            {
+                Console.WriteLine("Min greater than Max");
+                return null;
+            }
+
+            MySqlConnectionStringBuilder connStringBuilder = new MySqlConnectionStringBuilder(actualConnectionString);
+            string connString = connStringBuilder.ConnectionString;
+            // Book array to return query results. By default only first 100 books returned. Can change.
+            int SIZE = 50;
+            Book[] result = new Book[SIZE];
+            int index = 0;
+
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                using (MySqlCommand command = new MySqlCommand(Properties.Resources.Genre_TitleSearch, conn))
+                {
+                    conn.Open();
+                    command.Parameters.AddWithValue("@min", min);
+                    command.Parameters.AddWithValue("@max", max);
+                    command.Parameters.AddWithValue("@genres", genres);
+                    command.Parameters.AddWithValue("@titleName", titleName);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read() && index < SIZE)
+                        {
+                            result[index] = new Book((int)reader[0], (string)reader[1], (string)reader[2], (string)reader[3], (int)reader[4]);
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }// END OF GENRE TITLE SEARCH METHOD
+
+    } // END OF QUERY SYSTEM CLASS
+    
+}
